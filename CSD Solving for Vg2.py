@@ -13,9 +13,10 @@ import numpy as np
 
 #define constants 
 e = 1 #normalised everything so not 1.6e-19
-pd = 10000
-#charging energies and coupling energy 
+pd = 10000 #is the number of 'points displayed' along 1 axis
 
+#charging energies and coupling energy 
+#Equations defined in Wiel et al 2002. 
 def Ec1func(C1,C2,Cm):
     cmsq = Cm **2
     frac = cmsq/(C1*C2)
@@ -34,7 +35,9 @@ def Ecmfunc(C1,C2,Cm):
     val = ((e**2)/Cm) * (1/((frac)-1))
     return val 
 
-#Vg2 under condition that µ1 = µ2 
+
+
+#Solve Mu1 and Mu2 for Vg2 under condition that µ1 = µ2 
 def Vg2(Vg1,N1,N2,M1,M2,Ec1,Ec2,Ecm,Cg1,Cg2):
     sumVg2 = (M1 - 0.5)*Ec1 + (M2 - N1)*Ecm -(N2-0.5)*Ec2 +(np.abs(1/e)*Cg1*Vg1*(Ecm-Ec1))
     ampVg2 = -np.abs(e)/ (Cg2*(Ec2-Ecm))
@@ -42,14 +45,13 @@ def Vg2(Vg1,N1,N2,M1,M2,Ec1,Ec2,Ecm,Cg1,Cg2):
     vg2 = ampVg2 * sumVg2
     return vg2
 
-#Vg2 under condition that µ1 = 0 
-
+#Solve Mu1 for Vg2 under condition that µ1 = 0 
 def Vg2_mu1(Vg1,M1,M2,Ec1,Ec2,Ecm,Cg1,Cg2):
     sumVg2 = (M1 - 0.5)*Ec1 + (M2*Ecm) - (np.abs(1/e)*Cg1*Vg1*Ec1)
     ampVg2 = np.abs(e) / (Cg2*Ecm)
     return ampVg2 * sumVg2
     
-    
+#Solve Mu2 for Vg2 under condition that µ2 = 0     
 def Vg2_mu2(Vg1,N1,N2,Ec1,Ec2,Ecm,Cg1,Cg2):
     sumVg2 = (N2 - 0.5)*Ec2 + N1*Ecm - (np.abs(1/e)*Cg1*Vg1*Ecm)
     ampVg2 = np.abs(e) / (Cg2*Ec2)
@@ -57,13 +59,13 @@ def Vg2_mu2(Vg1,N1,N2,Ec1,Ec2,Ecm,Cg1,Cg2):
     
 
 
-#Vg2 under condition that µ2 = 0 
 
-
+#Solve for Mu1 given Vg1 and Vg2
 def mu1_func(N1,N2,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2):
     val = (N1 - 0.5)*Ec1 + N2*Ecm - (1/np.abs(e))*(Cg1*Vg1*Ec1 + Cg2*Vg2*Ecm)
     return val
 
+#Solve for Mu2 given Vg1 and Vg2
 def mu2_func(N1,N2,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2):
     val = (N2 - 0.5)*Ec2 + N1*Ecm - (1/np.abs(e))*(Cg1*Vg1*Ecm + Cg2*Vg2*Ec2)
     return val
@@ -71,6 +73,7 @@ def mu2_func(N1,N2,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2):
 
 def plotChargeStab(CL,CR,Cm,Cg1,Cg2):
     
+    #Eqs given in Wiel et al 2002.
     C1 = CL + Cm + Cg1
     C2 = CR + Cm + Cg2
     
@@ -78,37 +81,56 @@ def plotChargeStab(CL,CR,Cm,Cg1,Cg2):
     Ec2 = Ec2func(C1,C2,Cm)
     Ecm = Ecmfunc(C1,C2,Cm)
     
+    #k is the mu1 electron occupancy 
+    #j is the mu2 electron occupancy 
     for k in range(0,4):
         for j in range(0,4):
+            
+            #generate all Vg1 values
             Vg1 = np.linspace(0,10,pd)
             
-            M1e, M2e = k+1, j  #mu_1
-            N1e, N2e = k, j+1  #mu_2
             
-            M1h, M2h = k+1, j+1  #mu_1
-            N1h, N2h = k+1, j+1  #mu_2
+            #1. FIND TRIPLE POINTS ------------------------------------
+        
+            #Electron type triple point  
+  # Condition is Mu1(M1, M2) = Mu2(N1,N2) = where M1,M2,N1,N2 equals....
+            M1e, M2e = k+1, j  #Electron occupancy of mu_1 
+            N1e, N2e = k, j+1  #Electron occupancy of mu_2
+            
+            #Hole type triple point 
+  # Condition is Mu1(M1, M2) = Mu2(N1,N2) = where M1,M2,N1,N2 equals....
+            M1h, M2h = k+1, j+1  #Electron occupancy of mu_1
+            N1h, N2h = k+1, j+1  #Electron occupancy of mu_2
             
 
-            
+            #Find Vg2 for electron triple point 
             Vg2_e = Vg2(Vg1,k,N2e,M1e,M2e,Ec1,Ec2,Ecm,Cg1,Cg2)
-        
+            #Find Vg2 for hole triple point 
             Vg2_h = Vg2(Vg1,N1h,N2h,M1h,M2h,Ec1,Ec2,Ecm,Cg1,Cg2)
             
+            #Find Mu1 and Mu2 for electron triple point
+            #(Just to check if they are actually equal)
             mu1_e = mu1_func(M1e,M2e,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2_e)
             mu2_e = mu2_func(N1e,N2e,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2_e)
             
+            #currently Vg2_e and Vg2_h hold all Mu_1 = Mu_2
+            #however missing condition Mu_1 = Mu_2 = 0 hence must apply
             plot_Vg1_e= [] 
             plot_Vg2_e = []
             for i in range(1,len(mu1_e)):
                 #print(mu1_e[i],mu2_e[i],Vg1[i],Vg2_e[i])
                 if np.round(mu1_e[i],3) == 0:
+                    #only plot the Vg1 and Vg2 that have a mu1/2=0 
                     plot_Vg1_e.append(Vg1[i])
                     plot_Vg2_e.append(Vg2_e[i])
-                    
-                    
+        
+        
+            #Find Mu1 and Mu2 for hole triple point
+            #(Just to check if they are actually equal)    
             mu1_h = mu1_func(M1h,M2h,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2_h)
             mu2_h = mu2_func(N1h,N2h,Ec1,Ec2,Ecm,Cg1,Cg2,Vg1,Vg2_h)
-             
+            
+            #same as above but for holes
             plot_Vg1_h = [] 
             plot_Vg2_h = []
            
@@ -119,17 +141,23 @@ def plotChargeStab(CL,CR,Cm,Cg1,Cg2):
                      plot_Vg1_h.append(Vg1[i])
                      plot_Vg2_h.append(Vg2_h[i])
             
-            #in between line
-            lb = np.where(Vg1 == plot_Vg1_e[0])[0][0]
-            ub = np.where(Vg1 == plot_Vg1_h[0])[0][0]
+            
+            #2. FIND TRANSITION LINES ------------------------------------
+            
+            #2.1 CONDITION Mu_1 = MU_2 != 0 
+            #Need to find the boundaries of the lines in terms of Vg1 
+            lb = np.where(Vg1 == plot_Vg1_e[0])[0][0] #lower bound Vg1 
+            ub = np.where(Vg1 == plot_Vg1_h[0])[0][0] #upper bound Vg1 
+            #plot Vg2_e in this range, do not impose condition that mu1/2 = 0 
             plt.plot(Vg1[lb:ub],Vg2_e[lb:ub],color='black')
             
-            #mu1 line 
-            
+            #2.2 CONDITION Mu_1 = 0 and Mu_2 = 0 
+            #FInd Vg2 for condition
             Vg2_mu1_zero = Vg2_mu1(Vg1,M1e,M2e,Ec1,Ec2,Ecm,Cg1,Cg2)
             Vg2_mu2_zero = Vg2_mu2(Vg1,N1e,N2e,Ec1,Ec2,Ecm,Cg1,Cg2)
             
-            
+            #Find the adjacent hole triple point connected to the transition line ~~~~~~~~~~
+            #Necessary to sefine boundaries
             M1hl, M2hl = k, j+1  #mu_1
             N1hl, N2hl = k, j+1  #mu_2
             
@@ -159,10 +187,10 @@ def plotChargeStab(CL,CR,Cm,Cg1,Cg2):
                      #print(mu1_h[i])
                      plot_Vg1_hr.append(Vg1[i])
                      plot_Vg2_hr.append(Vg2_hr[i])
-                     
+            #Adjacent hole triple points found so now we move on to define boundaries~~~        
             
-            #in between line
             
+            #Define upper and lower bounds of Vg1 for each transition line
             if not plot_Vg1_hl:
                 print("Non found")
                 lbl = 0 
@@ -180,15 +208,12 @@ def plotChargeStab(CL,CR,Cm,Cg1,Cg2):
                 ubr = np.where(Vg1 == plot_Vg1_hr[0])[0][0]
             
         
-            #change these 
-            plt.plot(plot_Vg1_hl,plot_Vg2_hl,'o',color='white',  markeredgecolor='black')
-            plt.plot(plot_Vg1_hr,plot_Vg2_hr,'o',color='white',  markeredgecolor='black')
+            #Plot transition lines with boundaries 
             plt.plot(Vg1[lbr:ubr],Vg2_mu1_zero[lbr:ubr],c='black')
             plt.plot(Vg1[lbl:ubl],Vg2_mu2_zero[lbl:ubl],c='black')
-           
-            
-           
-            
+            #Plot triple points 
+            plt.plot(plot_Vg1_hl,plot_Vg2_hl,'o',color='white',  markeredgecolor='black')
+            plt.plot(plot_Vg1_hr,plot_Vg2_hr,'o',color='white',  markeredgecolor='black')
             plt.plot(plot_Vg1_e,plot_Vg2_e,'o',c='black')
             plt.plot(plot_Vg1_h,plot_Vg2_h,'o',c='white', markeredgecolor='black')
             plt.xlim(0,8)
